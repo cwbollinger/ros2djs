@@ -13,7 +13,7 @@
    * Setup all visualization elements when the page is loaded.
    */
 
-  class RobotMarker {
+  class LabeledMarker {
     constructor(robotName, color, size=1) {
       this.name = robotName;
       this.color = color;
@@ -46,10 +46,28 @@
     }
 
     addMarker(viewer) {
+      this.updateScaling(viewer.scene.scaleX, viewer.scene.scaleY);
       viewer.addObject(this.marker);
       viewer.addObject(this.markerText);
     }
   } 
+
+  class RobotVisualizer {
+    constructor(ros, prefixName) {
+      this.prefixName = prefixName
+      this.nav_topic = new ROSLIB.Topic({
+        ros : ros,
+        name : prefixName+'/move_base_simple/goal',
+        messageType : 'geometry_msgs/PoseStamped'
+      });
+
+      this.nav_goal_topic = new ROSLIB.Topic({
+        ros : ros,
+        name : prefixName+'/move_base/current_goal',
+        messageType : 'geometry_msgs/PoseStamped'
+      });
+    }
+  }
 
   let markers = [];
 
@@ -57,18 +75,6 @@
     // Connect to ROS.
     var ros = new ROSLIB.Ros({
       url : 'ws://olorin.engr.oregonstate.edu:9090'
-    });
-
-    var nav_topic = new ROSLIB.Topic({
-      ros : ros,
-      name : '/move_base_simple/goal',
-      messageType : 'geometry_msgs/PoseStamped'
-    });
-
-    var nav_goal_topic = new ROSLIB.Topic({
-      ros : ros,
-      name : '/move_base/current_goal',
-      messageType : 'geometry_msgs/PoseStamped'
     });
 
     // Create the main viewer.
@@ -95,21 +101,9 @@
       }
     });
 
-    let marker = new RobotMarker('test', 'red', 0.5);
-    marker.updateScaling(viewer.scene.scaleX, viewer.scene.scaleY);
+    let marker = new LabeledMarker('fetch', 'red', 0.5);
+    //markers.push(marker);
     marker.addMarker(viewer);
-
-    //var marker = new ROS2D.NavigationArrow({size:0.3, strokeSize:0.01});
-    //var dot_graphic = new createjs.Graphics();
-    //dot_graphic.setStrokeStyle(1);
-    //dot_graphic.beginFill(createjs.Graphics.getRGB(255,0,0));
-    //dot_graphic.drawEllipse(-marker_width/2,-marker_height/2,marker_width,marker_height);
-
-    //var marker = new createjs.Shape(dot_graphic);
-    //var marker_label = new createjs.Text('test', '12px Arial', 'red');
-
-    //viewer.addObject(marker);
-    //viewer.addObject(marker_label);
 
     console.log("creating TFClient");
     var tfClient = new ROSLIB.TFClient({
@@ -120,46 +114,48 @@
     });
 
     tfClient.subscribe('base_link', function(tf) {
-      console.log(tf);
       marker.setLocation(tf.translation.x, -tf.translation.y);
-      //marker.x = tf.translation.x;
-      //marker.y = -tf.translation.y;
-      //marker.rotation = -180.0 / Math.PI * Math.atan2(2*tf.rotation.w*tf.rotation.z, 1-2*tf.rotation.z*tf.rotation.z);
-      //marker_label.x = tf.translation.x;
-      //marker_label.y = -tf.translation.y;
-      //console.log(marker_label.x);
-      //console.log(marker_label.y);
-      //var bounds = marker_label.getBounds();
-      //console.log(bounds);
-      //bounds = marker_label.getTransformedBounds();
-      //console.log(bounds);
-      //marker_label.setTransform(marker_label.x, marker_label.y, 0.1, 0.1);
-      //bounds = marker_label.getTransformedBounds();
-      //marker_label.setTransform(marker_label.x-bounds.width/2, marker_label.y-bounds.height, 0.1, 0.1);
-      //console.log(bounds);
-      //console.log(marker_label.x);
-      //console.log(marker_label.y);
     });
+
+    function transformClickToMap(pixelX, pixelY) {
+      x_offset = gridClient.currentGrid.pose.position.x;
+      y_offset = gridClient.currentGrid.pose.position.y;
+      //console.log(gridClient.currentGrid.pose);
+      console.log('Pixel Coordinates');
+      console.log(pixelX + ', ' + pixelY);
+      //console.log('Scaled Coordinates');
+      //console.log(evt.stageX/viewer.scene.scaleX + ', ' + evt.stageY/viewer.scene.scaleY);
+      //console.log('Offset');
+      //console.log(x_offset + ', ' + y_offset);
+      x_map = pixelX/viewer.scene.scaleX+x_offset;
+      y_map = pixelY/viewer.scene.scaleY+y_offset;
+      //console.log('Transformed click coordinates');
+      //console.log(x_click_map + ', ' +  y_click_map);
+      return [x_map, y_map];
+    }
 
     var nav_goal = null;
     var nav_marker_width=0;
     var nav_marker_height=0;
 
     function showNavGoal(msg) {
-      console.log(msg);
-      x_offset = gridClient.currentGrid.pose.position.x;
-      y_offset = gridClient.currentGrid.pose.position.y;
-      //console.log(gridClient.currentGrid.pose);
+      console.log('Message Position:');
+      console.log(msg.pose.position);
+      //x_offset = gridClient.currentGrid.pose.position.x;
+      //y_offset = gridClient.currentGrid.pose.position.y;
+      //console.log('GridClient pose:');
+      //console.log(gridClient.currentGrid.pose.position);
       //console.log('Pixel Coordinates');
       //console.log(evt.stageX + ', ' + evt.stageY);
       //console.log('Scaled Coordinates');
       //console.log(evt.stageX/viewer.scene.scaleX + ', ' + evt.stageY/viewer.scene.scaleY);
       //console.log('Offset');
       //console.log(x_offset + ', ' + y_offset);
-      x_click_map = evt.stageX/viewer.scene.scaleX+x_offset;
-      y_click_map = evt.stageY/viewer.scene.scaleY+y_offset;
+      //console.log('Viewer Scale:');
+      //console.log(viewer.scene.scaleX);
+      //console.log(viewer.scene.scaleY);
       //console.log('Transformed click coordinates');
-      console.log(x_click_map + ', ' +  y_click_map);
+      //console.log(x_click_map + ', ' +  y_click_map);
       if(nav_goal == null) {
         var dot_graphic = new createjs.Graphics();
         dot_graphic.setStrokeStyle(1);
@@ -170,6 +166,8 @@
         nav_goal = new createjs.Shape(dot_graphic);
         viewer.addObject(nav_goal);
       }
+      nav_goal.x = msg.pose.position.x;
+      nav_goal.y = -msg.pose.position.y;
     }
 
     nav_goal_topic.subscribe(showNavGoal);
@@ -180,19 +178,8 @@
 
     function handleClick(evt) {
       console.log(evt);
-      x_offset = gridClient.currentGrid.pose.position.x;
-      y_offset = gridClient.currentGrid.pose.position.y;
-      //console.log(gridClient.currentGrid.pose);
-      //console.log('Pixel Coordinates');
-      //console.log(evt.stageX + ', ' + evt.stageY);
-      //console.log('Scaled Coordinates');
-      //console.log(evt.stageX/viewer.scene.scaleX + ', ' + evt.stageY/viewer.scene.scaleY);
-      //console.log('Offset');
-      //console.log(x_offset + ', ' + y_offset);
-      x_click_map = evt.stageX/viewer.scene.scaleX+x_offset;
-      y_click_map = evt.stageY/viewer.scene.scaleY+y_offset;
-      //console.log('Transformed click coordinates');
-      console.log(x_click_map + ', ' +  y_click_map);
+      map_point = transformClickToMap(evt.stageX, evt.stageY);
+      console.log(map_point[0] + ', ' +  map_point[1]);
 
       if(s == null) {
         var dot_graphic = new createjs.Graphics();
@@ -204,8 +191,9 @@
         s = new createjs.Shape(dot_graphic);
         viewer.addObject(s);
       }
-      s.x = x_click_map;
-      s.y = y_click_map;
+
+      s.x = map_point[0];
+      s.y = map_point[1];
 
       nav_topic.publish(new ROSLIB.Message({
         header: {
@@ -213,8 +201,8 @@
         },
         pose: {
           position: {
-            x: x_click_map,
-            y: -y_click_map,
+            x: map_point[0],
+            y: map_point[1],
             z: 0.0
           },
           orientation: {
