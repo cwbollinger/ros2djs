@@ -13,9 +13,13 @@
    * Setup all visualization elements when the page is loaded.
    */
 
+  var viewer = null;
+
+  var markers = [];
+
   class LabeledMarker {
-    constructor(robotName, color, size=1) {
-      this.name = robotName;
+    constructor(name, color, size=1) {
+      this.name = name;
       this.color = color;
       this.size = size;
       this.marker_width = size;
@@ -29,7 +33,7 @@
       this.marker_height = this.size/scaleY;
       let graphic = new createjs.Graphics();
       graphic.setStrokeStyle(1);
-      graphic.beginFill(createjs.Graphics.getRGB(255,0,0));
+      graphic.beginFill(this.color);
       graphic.drawEllipse(-this.marker_width/2,-this.marker_height/2,this.marker_width,this.marker_height);
       this.marker = new createjs.Shape(graphic);
       this.markerText = new createjs.Text(this.name, '12px Arial', this.color);
@@ -53,7 +57,7 @@
   } 
 
   class RobotVisualizer {
-    constructor(ros, prefixName) {
+    constructor(prefixName, ros, color='black') {
       this.prefixName = prefixName
       this.nav_topic = new ROSLIB.Topic({
         ros : ros,
@@ -66,10 +70,36 @@
         name : prefixName+'/move_base/current_goal',
         messageType : 'geometry_msgs/PoseStamped'
       });
+
+      this.nav_goal_topic.subscribe(showNavGoal);
+      this.marker = new LabeledMarker(prefixName, color, 0.5);
+
+      console.log("creating TFClient");
+      let tfClient = new ROSLIB.TFClient({
+        ros : ros,
+        fixedFrame : '/map',
+        angularThres : 0.01,
+        transThres : 0.01
+      });
+
+      tfClient.subscribe(prefixName+'/base_link', (tf) => {
+        this.marker.setLocation(tf.translation.x, -tf.translation.y);
+      });
+
     }
   }
 
-  let markers = [];
+  var nav_marker = null;
+  const showNavGoal = (msg) => {
+    console.log('Message Position:');
+    console.log(msg.pose.position);
+    if(nav_marker == null) {
+      nav_marker = new LabeledMarker('goal', 'green', 0.25);
+      nav_marker.addMarker(viewer);
+    }
+    nav_marker.setLocation(msg.pose.position.x, -msg.pose.position.y);
+  }
+
 
   function init() {
     // Connect to ROS.
@@ -78,7 +108,7 @@
     });
 
     // Create the main viewer.
-    var viewer = new ROS2D.Viewer({
+    viewer = new ROS2D.Viewer({
       divID : 'map',
       width : 600,
       height : 600
@@ -101,21 +131,9 @@
       }
     });
 
-    let marker = new LabeledMarker('fetch', 'red', 0.5);
+    //let marker = new LabeledMarker('fetch', 'red', 0.5);
     //markers.push(marker);
-    marker.addMarker(viewer);
-
-    console.log("creating TFClient");
-    var tfClient = new ROSLIB.TFClient({
-      ros : ros,
-      fixedFrame : '/map',
-      angularThres : 0.01,
-      transThres : 0.01
-    });
-
-    tfClient.subscribe('base_link', function(tf) {
-      marker.setLocation(tf.translation.x, -tf.translation.y);
-    });
+    //marker.addMarker(viewer);
 
     function transformClickToMap(pixelX, pixelY) {
       x_offset = gridClient.currentGrid.pose.position.x;
@@ -127,75 +145,24 @@
       //console.log(evt.stageX/viewer.scene.scaleX + ', ' + evt.stageY/viewer.scene.scaleY);
       //console.log('Offset');
       //console.log(x_offset + ', ' + y_offset);
-      x_map = pixelX/viewer.scene.scaleX+x_offset;
-      y_map = pixelY/viewer.scene.scaleY+y_offset;
+      x_map = pixelX/viewer.scene.scaleX+gridClient.currentGrid.x;
+      y_map = -1.0*(pixelY/viewer.scene.scaleY+gridClient.currentGrid.y);
       //console.log('Transformed click coordinates');
       //console.log(x_click_map + ', ' +  y_click_map);
       return [x_map, y_map];
     }
 
-    var nav_goal = null;
-    var nav_marker_width=0;
-    var nav_marker_height=0;
+    let robot0 = new RobotVisualizer('robot_0', ros, 'black');
+    let robot1 = new RobotVisualizer('robot_1', ros, 'red');
 
-    function showNavGoal(msg) {
-      console.log('Message Position:');
-      console.log(msg.pose.position);
-      //x_offset = gridClient.currentGrid.pose.position.x;
-      //y_offset = gridClient.currentGrid.pose.position.y;
-      //console.log('GridClient pose:');
-      //console.log(gridClient.currentGrid.pose.position);
-      //console.log('Pixel Coordinates');
-      //console.log(evt.stageX + ', ' + evt.stageY);
-      //console.log('Scaled Coordinates');
-      //console.log(evt.stageX/viewer.scene.scaleX + ', ' + evt.stageY/viewer.scene.scaleY);
-      //console.log('Offset');
-      //console.log(x_offset + ', ' + y_offset);
-      //console.log('Viewer Scale:');
-      //console.log(viewer.scene.scaleX);
-      //console.log(viewer.scene.scaleY);
-      //console.log('Transformed click coordinates');
-      //console.log(x_click_map + ', ' +  y_click_map);
-      if(nav_goal == null) {
-        var dot_graphic = new createjs.Graphics();
-        dot_graphic.setStrokeStyle(1);
-        dot_graphic.beginFill(createjs.Graphics.getRGB(0,255,0));
-        nav_marker_width = 20/viewer.scene.scaleX;
-        nav_marker_height = 20/viewer.scene.scaleY;
-        dot_graphic.drawEllipse(-nav_marker_width/2,-nav_marker_height/2,nav_marker_width,nav_marker_height);
-        nav_goal = new createjs.Shape(dot_graphic);
-        viewer.addObject(nav_goal);
-      }
-      nav_goal.x = msg.pose.position.x;
-      nav_goal.y = -msg.pose.position.y;
-    }
-
-    nav_goal_topic.subscribe(showNavGoal);
-
-    var s = null;
-    var marker_width=0;
-    var marker_height=0;
+    robot0.marker.addMarker(viewer);
+    robot1.marker.addMarker(viewer);
 
     function handleClick(evt) {
-      console.log(evt);
+      //console.log(evt);
       map_point = transformClickToMap(evt.stageX, evt.stageY);
       console.log(map_point[0] + ', ' +  map_point[1]);
-
-      if(s == null) {
-        var dot_graphic = new createjs.Graphics();
-        dot_graphic.setStrokeStyle(1);
-        dot_graphic.beginFill(createjs.Graphics.getRGB(0,0,255));
-        marker_width = 10/viewer.scene.scaleX;
-        marker_height = 10/viewer.scene.scaleY;
-        dot_graphic.drawEllipse(-marker_width/2,-marker_height/2,marker_width,marker_height);
-        s = new createjs.Shape(dot_graphic);
-        viewer.addObject(s);
-      }
-
-      s.x = map_point[0];
-      s.y = map_point[1];
-
-      nav_topic.publish(new ROSLIB.Message({
+      robot0.nav_topic.publish(new ROSLIB.Message({
         header: {
           frame_id: 'map'
         },
