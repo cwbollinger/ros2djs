@@ -1,202 +1,134 @@
 <!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8" />
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="Chris Bollinger">
 
-<script src="https://static.robotwebtools.org/EaselJS/current/easeljs.js"></script>
-<script src="https://static.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
-<script src="https://static.robotwebtools.org/roslibjs/current/roslib.js"></script>
-<script src="../build/ros2d.js"></script>
+    <title>Long Term Autonomy UI</title>
 
-<script>
-  /**
-   * Setup all visualization elements when the page is loaded.
-   */
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+    <link href="./dashboard.css" rel="stylesheet">
+  </head>
+  
+  <body>
+    <nav class="navbar navbar-dark fixed-top bg-dark flex-md-nowrap p-0 shadow">
+      <a class="navbar-brand col-sm-3 col-md-2 mr-0" href="#">Graf Long Term Server</a>
+      <input class="form-control form-control-dark w-100" type="text" placeholder="Search" aria-label="Search">
+      <ul class="navbar-nav px-3">
+        <li class="nav-item text-nowrap">
+          <a class="nav-link" href="#">Sign out</a>
+        </li>
+      </ul>
+    </nav>
+    <div class="container-fluid">
+      <div class="row">
+        <nav class="col-md-2 d-none d-md-block bg-light sidebar">
+          <div class="sidebar-sticky">
+            <ul class="nav flex-column">
+              <li class="nav-item">
+                <a class="nav-link active" href="#">
+                  <span data-feather="home"></span>
+                  Dashboard <span class="sr-only">(current)</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#">
+                  <span data-feather="file"></span>
+                  Orders
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#">
+                  <span data-feather="shopping-cart"></span>
+                  Products
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#">
+                  <span data-feather="users"></span>
+                  Customers
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#">
+                  <span data-feather="bar-chart-2"></span>
+                  Reports
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#">
+                  <span data-feather="layers"></span>
+                  Integrations
+                </a>
+              </li>
+            </ul>
 
-  var viewer = null;
+            <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+              <span>Saved reports</span>
+              <a class="d-flex align-items-center text-muted" href="#">
+                <span data-feather="plus-circle"></span>
+              </a>
+            </h6>
+            <ul class="nav flex-column mb-2">
+              <li class="nav-item">
+                <a class="nav-link" href="#">
+                  <span data-feather="file-text"></span>
+                  Current month
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#">
+                  <span data-feather="file-text"></span>
+                  Last quarter
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#">
+                  <span data-feather="file-text"></span>
+                  Social engagement
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#">
+                  <span data-feather="file-text"></span>
+                  Year-end sale
+                </a>
+              </li>
+            </ul>
+          </div>
+        </nav>
 
-  var markers = [];
+        <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-4">
+          <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+            <h1 class="h2">Dashboard</h1>
+            <div class="btn-toolbar mb-2 mb-md-0">
+              <div class="btn-group mr-2">
+                <button class="btn btn-sm btn-outline-secondary">Share</button>
+                <button class="btn btn-sm btn-outline-secondary">Export</button>
+              </div>
+              <button class="btn btn-sm btn-outline-secondary dropdown-toggle">
+                <span data-feather="calendar"></span>
+                This week
+              </button>
+            </div>
+          </div>
 
-  class LabeledMarker {
-    constructor(name, color, size=1) {
-      this.name = name;
-      this.color = color;
-      this.size = size;
-      this.marker_width = size;
-      this.marker_height = size;
-      this.graphic = null;
-      this.scalingFactor = 0.1;
-    }
+          <div class="my-4 w-100" id="map" width="600" height="600"></div>
 
-    updateScaling(scaleX, scaleY) {
-      this.marker_width = this.size/scaleX;
-      this.marker_height = this.size/scaleY;
-      let graphic = new createjs.Graphics();
-      graphic.setStrokeStyle(1);
-      graphic.beginFill(this.color);
-      graphic.drawEllipse(-this.marker_width/2,-this.marker_height/2,this.marker_width,this.marker_height);
-      this.marker = new createjs.Shape(graphic);
-      this.markerText = new createjs.Text(this.name, '12px Arial', this.color);
-      let bounds = this.markerText.getBounds();
-      this.markerText.setTransform(this.markerText.x-this.scalingFactor*bounds.width/2, this.markerText.y-this.scalingFactor*bounds.height, this.scalingFactor, this.scalingFactor);
-    }
+        </main>
+      </div>
+    </div>
 
-    setLocation(x, y, theta=0) {
-      this.marker.x = x;
-      this.marker.y = y;
-      this.marker.rotation = theta;
-      let bounds = this.markerText.getTransformedBounds();
-      this.markerText.setTransform(x-bounds.width/2, y-bounds.height, this.scalingFactor, this.scalingFactor);
-    }
-
-    addMarker(viewer) {
-      this.updateScaling(viewer.scene.scaleX, viewer.scene.scaleY);
-      viewer.addObject(this.marker);
-      viewer.addObject(this.markerText);
-    }
-  } 
-
-  class RobotVisualizer {
-    constructor(prefixName, ros, color='black') {
-      this.prefixName = prefixName
-      this.nav_topic = new ROSLIB.Topic({
-        ros : ros,
-        name : prefixName+'/move_base_simple/goal',
-        messageType : 'geometry_msgs/PoseStamped'
-      });
-
-      this.nav_goal_topic = new ROSLIB.Topic({
-        ros : ros,
-        name : prefixName+'/move_base/current_goal',
-        messageType : 'geometry_msgs/PoseStamped'
-      });
-
-      this.nav_goal_topic.subscribe(showNavGoal);
-      this.marker = new LabeledMarker(prefixName, color, 0.5);
-
-      console.log("creating TFClient");
-      let tfClient = new ROSLIB.TFClient({
-        ros : ros,
-        fixedFrame : '/map',
-        angularThres : 0.01,
-        transThres : 0.01
-      });
-
-      tfClient.subscribe(prefixName+'/base_link', (tf) => {
-        this.marker.setLocation(tf.translation.x, -tf.translation.y);
-      });
-
-    }
-  }
-
-  var nav_marker = null;
-  const showNavGoal = (msg) => {
-    console.log('Message Position:');
-    console.log(msg.pose.position);
-    if(nav_marker == null) {
-      nav_marker = new LabeledMarker('goal', 'green', 0.25);
-      nav_marker.addMarker(viewer);
-    }
-    nav_marker.setLocation(msg.pose.position.x, -msg.pose.position.y);
-  }
-
-
-  function init() {
-    // Connect to ROS.
-    var ros = new ROSLIB.Ros({
-      url : 'ws://olorin.engr.oregonstate.edu:9090'
-    });
-
-    // Create the main viewer.
-    viewer = new ROS2D.Viewer({
-      divID : 'map',
-      width : 600,
-      height : 600
-    });
-
-    // Setup the map client.
-    var gridClient = new ROS2D.OccupancyGridClient({
-      ros : ros,
-      rootObject : viewer.scene,
-      // Use this property in case of continuous updates			
-      continuous: true
-    });
-
-    // Scale the canvas to fit to the map
-    gridClient.on('change', function() {
-      viewer.scaleToDimensions(gridClient.currentGrid.width, gridClient.currentGrid.height);
-      viewer.shift(gridClient.currentGrid.pose.position.x, gridClient.currentGrid.pose.position.y);
-      for(let m of markers) {
-        m.updateScaling(viewer.scene.scaleX, viewer.scene.scaleY);
-      }
-    });
-
-    //let marker = new LabeledMarker('fetch', 'red', 0.5);
-    //markers.push(marker);
-    //marker.addMarker(viewer);
-
-    function transformClickToMap(pixelX, pixelY) {
-      x_offset = gridClient.currentGrid.pose.position.x;
-      y_offset = gridClient.currentGrid.pose.position.y;
-      //console.log(gridClient.currentGrid.pose);
-      console.log('Pixel Coordinates');
-      console.log(pixelX + ', ' + pixelY);
-      //console.log('Scaled Coordinates');
-      //console.log(evt.stageX/viewer.scene.scaleX + ', ' + evt.stageY/viewer.scene.scaleY);
-      //console.log('Offset');
-      //console.log(x_offset + ', ' + y_offset);
-      x_map = pixelX/viewer.scene.scaleX+gridClient.currentGrid.x;
-      y_map = -1.0*(pixelY/viewer.scene.scaleY+gridClient.currentGrid.y);
-      //console.log('Transformed click coordinates');
-      //console.log(x_click_map + ', ' +  y_click_map);
-      return [x_map, y_map];
-    }
-
-    let robot0 = new RobotVisualizer('robot_0', ros, 'black');
-    let robot1 = new RobotVisualizer('robot_1', ros, 'red');
-
-    robot0.marker.addMarker(viewer);
-    robot1.marker.addMarker(viewer);
-
-    function handleClick(evt) {
-      //console.log(evt);
-      map_point = transformClickToMap(evt.stageX, evt.stageY);
-      console.log(map_point[0] + ', ' +  map_point[1]);
-      robot0.nav_topic.publish(new ROSLIB.Message({
-        header: {
-          frame_id: 'map'
-        },
-        pose: {
-          position: {
-            x: map_point[0],
-            y: map_point[1],
-            z: 0.0
-          },
-          orientation: {
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0
-          }
-        }
-      }));
-    }
-
-    viewer.scene.on("stagemousedown", handleClick);
-  }
-</script>
-</head>
-
-<body onload="init()">
-  <h1>Continuous Map Example</h1>
-  <p>
-    Use any method to publish continuous updates to topic /map and use this page to visualize updates. Follow these commands:
-  </p>
-  <ol>
-    <li><tt>roscore</tt></li>
-    <li><tt>(method of choice to publish to /map)</tt></li>
-    <li><tt>roslaunch rosbridge_server rosbridge_websocket.launch</tt></li>
-  </ol>
-  <div id="map"></div>
-</body>
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+    <script src="https://static.robotwebtools.org/EaselJS/current/easeljs.js"></script>
+    <script src="https://static.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
+    <script src="https://static.robotwebtools.org/roslibjs/current/roslib.js"></script>
+    <script src="../build/ros2d.js"></script>
+    
+    <script src="./interface_script.js"></script>
+  </body>
 </html>
