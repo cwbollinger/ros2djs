@@ -1,0 +1,32 @@
+<launch>
+    <param name="/use_sim_time" value="true" />
+
+    <!-- Simulation (1 Turtlebot) -->
+    <include file="$(find turtlebot_stage)/launch/turtlebot_in_stage.launch"/>
+
+    <!-- Clients and TF repub -->
+    <!--
+    <node pkg="long_term_deployment" name="robot_client" type="client.py" output="screen">
+        <param name="agent_name" value="robot_0"/>
+        <param name="agent_type" value="turtlebot"/>
+    </node>
+    -->
+    <node pkg="tf2_web_republisher" type="tf2_web_republisher" name="tf2_web_republisher"/>
+    
+    <!--
+    <node name="cartographer_node" pkg="cartographer_ros" output="screen"
+        type="cartographer_node" args="
+            -configuration_directory
+                $(find cartographer_ros)/configuration_files
+            -configuration_basename pr2.lua">
+        <remap from="scan" to="base_scan" />
+    </node>
+    
+    <node name="cartographer_occupancy_grid_node" pkg="cartographer_ros" type="cartographer_occupancy_grid_node" args="-resolution 0.05">
+        <remap from="map" to="new_map" />
+    </node>
+    -->
+
+    <!-- Bridge for Web UI -->
+    <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
+</launch>
