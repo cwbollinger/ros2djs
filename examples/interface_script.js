@@ -179,11 +179,12 @@ async function setupMap() {
             multi_robot = true;
         }
         console.log(agent_names);
+	var robot;
         for(let idx = 0; idx < agent_names.length; idx++) {
             if(!multi_robot) {
-                let robot = new RobotVisualizer('', window.ros, 'black');
+                robot = new RobotVisualizer('', window.ros, 'black');
             } else {
-                let robot = new RobotVisualizer(agent_names[idx], window.ros, 'black');
+                robot = new RobotVisualizer(agent_names[idx], window.ros, 'black');
             }
             robot.pose_marker.addMarker(window.viewer);
         }
